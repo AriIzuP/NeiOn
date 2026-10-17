@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#080d1b"
+  >
+
+  <meta
+    name="description"
+    content="NeiOn AI Instrument Studio. Imagine your sound, shape your music."
+  >
+
+  <title>NeiOn — AI Instrument Studio</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- HEADER -->
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="NeiOn Home">
+        <span class="brand-icon">N</span>
+
+        <span class="brand-text">
+          <strong>NeiOn</strong>
+          <small>INSTRUMENT STUDIO</small>
+        </span>
+      </a>
+
+      <div class="version-badge">
+        <span class="status-dot"></span>
+        VERSION 0.1
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <main>
+      <section class="hero">
+        <div class="eyebrow">
+          <span class="eyebrow-line"></span>
+          YOUR IDEAS, YOUR SOUND
+        </div>
+
+        <h1>
+          Imagine it.<br>
+          <span>Hear it.</span>
+        </h1>
+
+        <p class="hero-description">
+          Turn the sound in your imagination into
+          the instrument your music needs.
+        </p>
+
+        <div class="hero-decoration" aria-hidden="true">
+          <div class="wave wave-one"></div>
+          <div class="wave wave-two"></div>
+          <div class="wave wave-three"></div>
+          <div class="wave wave-four"></div>
+          <div class="wave wave-five"></div>
+          <div class="wave wave-six"></div>
+          <div class="wave wave-seven"></div>
+          <div class="wave wave-eight"></div>
+          <div class="wave wave-nine"></div>
+          <div class="wave wave-ten"></div>
+          <div class="wave wave-eleven"></div>
+          <div class="wave wave-twelve"></div>
+          <div class="wave wave-thirteen"></div>
+          <div class="wave wave-fourteen"></div>
+          <div class="wave wave-fifteen"></div>
+        </div>
+      </section>
+
+      <!-- GENERATOR -->
+      <section class="studio-card">
+
+        <div class="section-heading">
+          <div>
+            <span class="section-number">01 / CREATE</span>
+            <h2>Sound Designer</h2>
+          </div>
+
+          <span class="live-label">
+            <span class="status-dot"></span>
+            STUDIO
+          </span>
+        </div>
+
+        <!-- INSTRUMENT -->
+        <div class="field-group">
+          <label for="instrument">
+            Instrument
+          </label>
+
+          <select id="instrument">
+            <option value="guitar">🎸 Guitar</option>
+            <option value="piano">🎹 Piano</option>
+            <option value="bass">🎸 Bass</option>
+            <option value="drums">🥁 Drums</option>
+            <option value="strings">🎻 Strings</option>
+            <option value="synth">🎛️ Synthesizer</option>
+          </select>
+
+          <p class="field-hint">
+            Guitar is our first development priority.
+          </p>
+        </div>
+
+        <!-- PROMPT -->
+        <div class="field-group">
+          <div class="label-row">
+            <label for="prompt">Describe your sound</label>
+
+            <span class="optional-label">
+              <span id="char-count">0</span>/500
+            </span>
+          </div>
+
+          <textarea
+            id="prompt"
+            maxlength="500"
+            rows="5"
+            placeholder="Example: Emotional electric guitar, clean tone, warm reverb, gentle fingerpicking, Japanese pop ballad..."
+          ></textarea>
+
+          <div class="prompt-examples">
+            <span class="examples-title">TRY:</span>
+
+            <button
+              class="example-chip"
+              type="button"
+              data-prompt="Emotional clean electric guitar, warm reverb, gentle arpeggios, Japanese pop ballad."
+            >
+              Emotional guitar
+            </button>
+
+            <button
+              class="example-chip"
+              type="button"
+              data-prompt="Energetic distorted electric guitar, tight rhythm, powerful rock sound."
+            >
+              Rock guitar
+            </button>
+
+            <button
+              class="example-chip"
+              type="button"
+              data-prompt="Soft acoustic guitar, intimate fingerpicking, warm natural tone."
+            >
+              Acoustic
+            </button>
+          </div>
+        </div>
+
+        <!-- STYLE -->
+        <div class="field-group">
+          <label for="style">Musical style</label>
+
+          <select id="style">
+            <option value="j-pop">J-Pop</option>
+            <option value="rock">Rock</option>
+            <option value="vocaloid">Vocaloid</option>
+            <option value="ambient">Ambient</option>
+            <option value="cinematic">Cinematic</option>
+            <option value="electronic">Electronic</option>
+            <option value="lofi">Lo-Fi</option>
+            <option value="custom">Other / Custom</option>
+          </select>
+        </div>
+
+        <!-- TONE -->
+        <div class="field-group">
+          <label for="tone">Sound character</label>
+
+          <select id="tone">
+            <option value="warm">Warm &amp; Soft</option>
+            <option value="bright">Bright &amp; Clear</option>
+            <option value="dark">Dark &amp; Moody</option>
+            <option value="aggressive">Powerful &amp; Aggressive</option>
+            <option value="clean">Clean &amp; Natural</option>
+            <option value="dreamy">Dreamy &amp; Atmospheric</option>
+          </select>
+        </div>
+
+        <!-- DURATION -->
+        <div class="field-group">
+          <label for="duration">Target duration</label>
+
+          <select id="duration">
+            <option value="5">5 seconds — Quick test</option>
+            <option value="10" selected>10 seconds — Short phrase</option>
+            <option value="15">15 seconds — Longer phrase</option>
+            <option value="30">30 seconds — Extended idea</option>
+          </select>
+
+          <p class="field-hint">
+            Actual duration will depend on the connected AI model.
+          </p>
+        </div>
+
+        <!-- GENERATE -->
+        <button
+          id="generate-btn"
+          class="generate-button"
+          type="button"
+        >
+          <span class="generate-icon">✦</span>
+          <span>Generate Instrument</span>
+          <span class="button-arrow">→</span>
+        </button>
+
+        <p class="generate-note">
+          <span class="status-dot"></span>
+          Audio generation API not connected yet
+        </p>
+
+        <!-- STATUS MESSAGE -->
+        <div
+          id="status-message"
+          class="status-message"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
+
+      </section>
+
+      <!-- AUDIO OUTPUT -->
+      <section class="output-card">
+        <div class="section-heading">
+          <div>
+            <span class="section-number">02 / OUTPUT</span>
+            <h2>Your Sound</h2>
+          </div>
+
+          <span class="output-icon">♫</span>
+        </div>
+
+        <div id="empty-output" class="empty-output">
+          <div class="empty-icon">♫</div>
+
+          <h3>Your next sound starts here.</h3>
+
+          <p>
+            Describe the instrument you imagine.
+            Generated audio will appear here after
+            an AI model is connected.
+          </p>
+        </div>
+
+        <div id="audio-output" hidden>
+          <div class="audio-info">
+            <span class="audio-symbol">♫</span>
+
+            <div class="audio-text">
+              <strong id="audio-title">Generated Instrument</strong>
+              <span id="audio-details">Audio ready</span>
+            </div>
+          </div>
+
+          <audio
+            id="audio-player"
+            controls
+            preload="none"
+          ></audio>
+
+          <a
+            id="download-button"
+            class="download-button"
+            href="#"
+            download="neion-instrument.wav"
+          >
+            ↓ Download Audio
+          </a>
+        </div>
+      </section>
+
+      <!-- FUTURE FEATURES -->
+      <section class="future-section">
+        <div class="section-heading">
+          <div>
+            <span class="section-number">03 / ROADMAP</span>
+            <h2>More Ways to Create</h2>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+
+          <article class="feature-card">
+            <div class="feature-icon">✎</div>
+            <h3>Text to Sound</h3>
+            <p>
+              Describe the instrument sound you want.
+            </p>
+            <span class="feature-status">IN DEVELOPMENT</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">♫</div>
+            <h3>MIDI to Audio</h3>
+            <p>
+              Turn MIDI notes into instrument performances.
+            </p>
+            <span class="feature-status planned">PLANNED</span>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">⌘</div>
+            <h3>Chord to Sound</h3>
+            <p>
+              Build instrument parts around your chords.
+            </p>
+            <span class="feature-status planned">PLANNED</span>
+          </article>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-brand">
+        <span class="footer-mark">N</span>
+        <strong>NeiOn</strong>
+      </div>
+
+      <p>Imagine it. Hear it.</p>
+
+      <span class="footer-note">
+        An independent AI Instrument Studio project.
+      </span>
+
+      <span class="copyright">
+        © <span id="current-year"></span> NeiOn
+      </span>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+    </html>
