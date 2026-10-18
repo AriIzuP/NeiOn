@@ -27,6 +27,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Create Android project
+        shell: bash
         run: |
           mkdir -p app/src/main/java/com/ariizup/neion
           mkdir -p app/src/main/assets
@@ -36,12 +37,9 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-              }
-              plugins {
-                  id 'com.android.application' version '8.7.3'
+                  gradlePluginPortal()
               }
           }
-
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories {
@@ -49,7 +47,6 @@ jobs:
                   mavenCentral()
               }
           }
-
           rootProject.name = "NeiOn"
           include ':app'
           EOF
@@ -78,8 +75,8 @@ jobs:
                   applicationId 'com.ariizup.neion'
                   minSdk 23
                   targetSdk 28
-                  versionCode 1
-                  versionName '0.1.0'
+                  versionCode 2
+                  versionName '0.2.0'
               }
           }
           EOF
@@ -109,35 +106,35 @@ jobs:
           import android.content.Intent;
           import android.net.Uri;
           import android.os.Bundle;
+          import android.util.Base64;
           import android.webkit.JavascriptInterface;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.widget.Toast;
           import java.io.OutputStream;
-          import android.util.Base64;
 
           public class MainActivity extends Activity {
               private WebView webView;
               private String midiBase64 = "";
 
               @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
+              protected void onCreate(Bundle state) {
+                  super.onCreate(state);
 
                   webView = new WebView(this);
                   webView.getSettings().setJavaScriptEnabled(true);
-                  webView.getSettings().setDomStorageEnabled(false);
                   webView.setWebViewClient(new WebViewClient());
                   webView.addJavascriptInterface(new Bridge(), "NeiOnAndroid");
-                  setContentView(webView);
 
+                  setContentView(webView);
                   webView.loadUrl("file:///android_asset/index.html");
               }
 
               public class Bridge {
                   @JavascriptInterface
-                  public void saveMidi(String data, String filename) {
-                      midiBase64 = data;
+                  public void saveMidi(String base64, String filename) {
+                      midiBase64 = base64;
+
                       runOnUiThread(() -> {
                           Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                           intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -149,27 +146,56 @@ jobs:
               }
 
               @Override
-              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+              protected void onActivityResult(
+                  int requestCode, int resultCode, Intent data
+              ) {
                   super.onActivityResult(requestCode, resultCode, data);
 
-                  if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
+                  if (requestCode != 1001 || resultCode != RESULT_OK
+                      || data == null) {
+                      return;
+                  }
+
+                  try {
                       Uri uri = data.getData();
-                      try {
-                          byte[] bytes = Base64.decode(midiBase64, Base64.DEFAULT);
-                          OutputStream output = getContentResolver().openOutputStream(uri);
-                          output.write(bytes);
-                          output.close();
-                          Toast.makeText(this, "MIDI berhasil disimpan", Toast.LENGTH_LONG).show();
-                      } catch (Exception e) {
-                          Toast.makeText(this, "Gagal menyimpan MIDI", Toast.LENGTH_LONG).show();
+                      byte[] bytes = Base64.decode(
+                          midiBase64, Base64.DEFAULT
+                      );
+
+                      OutputStream out =
+                          getContentResolver().openOutputStream(uri);
+
+                      if (out == null) {
+                          throw new Exception("Output stream unavailable");
                       }
+
+                      try {
+                          out.write(bytes);
+                          out.flush();
+                      } finally {
+                          out.close();
+                      }
+
+                      Toast.makeText(
+                          this, "MIDI berhasil disimpan",
+                          Toast.LENGTH_LONG
+                      ).show();
+
+                  } catch (Exception e) {
+                      Toast.makeText(
+                          this, "Gagal menyimpan MIDI",
+                          Toast.LENGTH_LONG
+                      ).show();
                   }
               }
 
               @Override
               public void onBackPressed() {
-                  if (webView.canGoBack()) webView.goBack();
-                  else super.onBackPressed();
+                  if (webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
               }
           }
           EOF
@@ -179,33 +205,46 @@ jobs:
           <html lang="id">
           <head>
           <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>NeiOn Guitar Piano Roll</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>NeiOn v0.2.0</title>
           <style>
           *{box-sizing:border-box}
-          body{margin:0;background:#10131b;color:#f4f6ff;font:16px Arial,sans-serif;padding:16px}
-          h1{margin:0 0 6px;color:#8bdcff}
-          p{color:#b8c0d8;line-height:1.5}
-          label{display:block;margin:14px 0 6px;color:#dce4ff}
-          input,select,button{width:100%;padding:12px;border-radius:10px;border:1px solid #394258;background:#1b2230;color:white;font-size:16px}
-          button{background:#2879d7;border:0;font-weight:bold;margin-top:14px}
-          .panel{background:#171d29;padding:14px;border-radius:14px;margin-top:14px}
-          #roll{overflow:auto;margin-top:12px;border:1px solid #394258;background:#111722}
+          body{margin:0;padding:16px;background:#10131b;color:#f2f5ff;font:15px Arial,sans-serif}
+          h1{margin:0;color:#80dcff;font-size:30px}
+          h2{font-size:18px}
+          p{line-height:1.5;color:#b9c4df}
+          .sub{margin-top:4px}
+          .panel{margin-top:15px;padding:15px;background:#191f2d;border:1px solid #303a50;border-radius:15px}
+          label{display:block;margin:13px 0 6px;color:#dfe7ff}
+          input,select,button{width:100%;padding:12px;border-radius:9px;border:1px solid #3b4964;background:#111825;color:#fff;font-size:16px}
+          button{margin-top:13px;background:#237bd3;border:0;font-weight:bold}
+          button.secondary{background:#303b52}
+          .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+          .badge{display:inline-block;padding:5px 8px;background:#26374b;border-radius:7px;color:#a6e6ff;font-size:12px}
+          #roll{overflow:auto;max-height:540px;margin-top:12px;border:1px solid #354057;border-radius:8px;background:#101722}
           canvas{display:block}
-          small{color:#9ca8c6}
+          #explain{white-space:pre-line}
+          small{color:#aab6d2;line-height:1.5}
           </style>
           </head>
           <body>
           <h1>NeiOn</h1>
-          <p>Guitar chord pattern helper untuk FL Studio Mobile. Ini membuat susunan not MIDI, bukan suara gitar.</p>
+          <p class="sub">Guitar Pattern Studio · v0.2.0</p>
+          <span class="badge">OFFLINE · MIDI · FL STUDIO MOBILE</span>
 
           <div class="panel">
+          <h2>01 · Pattern Setup</h2>
+
           <label>Chord progression</label>
-          <input id="chords" value="F C G Am" placeholder="Contoh: F C G Am">
+          <input id="chords" value="F C G Am" autocomplete="off">
+          <small>Contoh: F C G Am atau Dm G C Am</small>
 
+          <div class="grid">
+          <div>
           <label>BPM</label>
-          <input id="bpm" type="number" value="88" min="40" max="240">
-
+          <input id="bpm" type="number" min="40" max="240" value="88">
+          </div>
+          <div>
           <label>Jumlah bar</label>
           <select id="bars">
           <option value="1">1 bar</option>
@@ -213,128 +252,238 @@ jobs:
           <option value="4" selected>4 bar</option>
           <option value="8">8 bar</option>
           </select>
+          </div>
+          </div>
 
-          <label>Gaya gitar</label>
-          <select id="style">
-          <option value="strum">Strumming (genjreng)</option>
-          <option value="arp">Fingerpicking (petik)</option>
-          <option value="power">Power chord</option>
+          <label>Teknik gitar</label>
+          <select id="technique">
+          <option value="strum">Strumming — genjreng</option>
+          <option value="variation">Strumming — variasi ritme</option>
+          <option value="arp">Fingerpicking — petikan</option>
+          <option value="power">Power chord — rock</option>
           </select>
 
           <button onclick="generate()">Buat Piano Roll</button>
           </div>
 
           <div class="panel">
-          <h3>Piano Roll — C0 sampai C7</h3>
-          <small>Not gitar ditampilkan di area nada gitar umum. Geser ke samping untuk melihat seluruh pola.</small>
+          <h2>02 · Piano Roll</h2>
+          <p>Rentang nada C0–C7. Geser tampilan untuk melihat posisi not dan ketukannya.</p>
           <div id="roll"><canvas id="canvas"></canvas></div>
+          <p id="summary">Belum ada pola.</p>
+          <button onclick="exportMidi()">Export MIDI (.mid)</button>
+          <button class="secondary" onclick="generate()">Generate Ulang</button>
+          <p><small>MIDI berisi nada dan timing, bukan rekaman suara gitar. Pilih instrumen gitar di FL Studio Mobile setelah mengimpor MIDI.</small></p>
+          </div>
+
+          <div class="panel">
+          <h2>03 · Penjelasan Pola</h2>
           <p id="explain">Masukkan chord lalu tekan Buat Piano Roll.</p>
-          <button onclick="exportMidi()">Export MIDI</button>
-          <small>MIDI bisa dibuka di FL Studio Mobile. Pilih instrumen gitar di sana untuk mendengar bunyinya.</small>
           </div>
 
           <script>
-          const noteNames=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+          const NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+          const LOW=12,HIGH=96,ROW=12,BEAT=84;
+          const STRINGS=[40,45,50,55,59,64];
           let notes=[];
+          let totalBeats=16;
 
-          function parseChord(chord){
-            const m=chord.match(/^([A-G])([#b]?)(.*)$/);
+          function parseChord(raw){
+            const m=raw.match(/^([A-G])([#b]?)(.*)$/i);
             if(!m)return null;
-            let root=noteNames.indexOf(m[1]+m[2]);
-            if(root<0 && m[2]==="b"){
-              root=(noteNames.indexOf(m[1])-1+12)%12;
+
+            let root=NAMES.indexOf(m[1].toUpperCase()+m[2]);
+            if(m[2]==="b"){
+              root=(NAMES.indexOf(m[1].toUpperCase())+11)%12;
             }
             if(root<0)return null;
-            const suffix=m[3].toLowerCase();
-            let intervals=[0,4,7];
-            if(suffix.startsWith("m") && !suffix.startsWith("maj")) intervals=[0,3,7];
-            if(suffix.includes("7")) intervals=[0,4,7,10];
-            if(suffix.includes("maj7")) intervals=[0,4,7,11];
-            if(suffix.includes("sus4")) intervals=[0,5,7];
-            if(suffix.includes("dim")) intervals=[0,3,6];
-            return {root,intervals};
+
+            const s=m[3].toLowerCase();
+            let iv=[0,4,7];
+
+            if(s.includes("sus2"))iv=[0,2,7];
+            else if(s.includes("sus4"))iv=[0,5,7];
+            else if(s.includes("dim"))iv=[0,3,6];
+            else if(s.includes("aug"))iv=[0,4,8];
+            else if(s.includes("maj7"))iv=[0,4,7,11];
+            else if(s.includes("m7")||s==="min7")iv=[0,3,7,10];
+            else if(s==="m"||s.startsWith("min"))iv=[0,3,7];
+            else if(s==="7"||s==="dom7")iv=[0,4,7,10];
+            else if(s==="m6")iv=[0,3,7,9];
+
+            return {name:raw,root,iv};
+          }
+
+          function makeVoicing(chord){
+            const pcs=chord.iv.map(x=>(chord.root+x)%12);
+            const result=[];
+
+            STRINGS.forEach(open=>{
+              let choices=[];
+              for(let fret=0;fret<=12;fret++){
+                const pitch=open+fret;
+                if(pcs.includes(pitch%12))choices.push(pitch);
+              }
+
+              if(choices.length){
+                let preferred=choices.find(p=>p>=open && p<=open+7);
+                if(preferred===undefined)preferred=choices[0];
+                result.push(preferred);
+              }
+            });
+
+            return result;
+          }
+
+          function addNote(pitch,start,duration,velocity=88){
+            if(pitch>=LOW&&pitch<=HIGH){
+              notes.push({pitch,start:Math.max(0,start),duration,velocity});
+            }
           }
 
           function generate(){
-            notes=[];
-            const chords=document.getElementById("chords").value.trim().split(/\s+/);
-            const bpm=Math.max(40,Math.min(240,Number(document.getElementById("bpm").value)||88));
+            const raw=document.getElementById("chords").value.trim();
+            const chords=raw.split(/\s+/).filter(Boolean).map(parseChord);
+            const bpm=Number(document.getElementById("bpm").value);
             const bars=Number(document.getElementById("bars").value);
-            const style=document.getElementById("style").value;
-            const totalBeats=bars*4;
-            const beatSeconds=60/bpm;
+            const technique=document.getElementById("technique").value;
+
+            if(!raw||!chords.length||chords.some(c=>!c)){
+              alert("Periksa nama chord. Contoh: F C G Am");
+              return;
+            }
+            if(!Number.isFinite(bpm)||bpm<40||bpm>240){
+              alert("BPM harus antara 40 dan 240.");
+              return;
+            }
+
+            notes=[];
+            totalBeats=bars*4;
             const beatsPerChord=totalBeats/chords.length;
+            const stagger=(60/bpm)*0.025*bpm/60;
 
-            chords.forEach((name,ci)=>{
-              const chord=parseChord(name);
-              if(!chord)return;
-              let tones=chord.intervals.map((interval,i)=>{
-                // Approximate guitar voicing range: MIDI 40–64
-                let pitch=40+chord.root+interval;
-                while(pitch>64)pitch-=12;
-                if(i>0 && pitch<=notes.slice(-1)[0]?.pitch)pitch+=12;
-                return Math.min(64,pitch);
-              });
+            chords.forEach((chord,index)=>{
+              const start=index*beatsPerChord;
+              const voicing=makeVoicing(chord);
+              if(!voicing.length)return;
 
-              const start=ci*beatsPerChord;
-              if(style==="power"){
-                tones=[40+chord.root,47+chord.root,52+chord.root].map(n=>Math.min(64,n));
-                for(let b=0;b<beatsPerChord;b+=2){
-                  tones.forEach(p=>notes.push({pitch:p,start:start+b,duration:1.8}));
-                }
-              }else if(style==="arp"){
-                const steps=Math.max(1,Math.floor(beatsPerChord*2));
-                for(let s=0;s<steps;s++){
-                  notes.push({pitch:tones[s%tones.length],start:start+s*(beatsPerChord/steps),duration:0.42});
-                }
-              }else{
-                // Down-up strum on each beat; tiny stagger between strings
+              if(technique==="power"){
+                const rootMidi=40+((chord.root-4+12)%12);
+                const power=[rootMidi,rootMidi+7,rootMidi+12]
+                  .filter(p=>p>=LOW&&p<=HIGH);
+
                 for(let b=0;b<beatsPerChord;b+=1){
-                  const up=(b%2===1);
-                  tones.forEach((p,i)=>{
-                    const order=up?tones.length-1-i:i;
-                    notes.push({pitch:tones[order],start:start+b+i*0.035,duration:0.32});
+                  power.forEach(p=>addNote(p,start+b,0.72,96));
+                }
+
+              }else if(technique==="arp"){
+                const steps=Math.max(1,Math.round(beatsPerChord*2));
+                for(let s=0;s<steps;s++){
+                  const pitch=voicing[s%voicing.length];
+                  addNote(pitch,start+s*beatsPerChord/steps,0.42,82);
+                }
+
+              }else{
+                const pattern=technique==="variation"
+                  ?[1,0,1,1,0,1,1,0]
+                  :[1,1,1,1,1,1,1,1];
+
+                const subdivisions=8;
+                for(let s=0;s<subdivisions;s++){
+                  if(!pattern[s])continue;
+                  const beat=s*0.5;
+                  if(beat>=beatsPerChord)continue;
+
+                  const up=(s%2===1);
+                  const ordered=up?[...voicing].reverse():voicing;
+
+                  ordered.forEach((pitch,stringIndex)=>{
+                    addNote(
+                      pitch,
+                      start+beat+stringIndex*stagger,
+                      0.32,
+                      up?72:92
+                    );
                   });
                 }
               }
             });
+
+            notes.sort((a,b)=>a.start-b.start||a.pitch-b.pitch);
             draw();
-            const label=style==="strum"?"Strumming turun-naik dengan not tiap senar sedikit bergeser.":style==="arp"?"Fingerpicking: not chord dipetik satu per satu.":"Power chord: root, fifth, dan octave.";
+
+            const names=chords.map(c=>c.name).join(" → ");
+            document.getElementById("summary").textContent=
+              names+" | "+bpm+" BPM | "+bars+" bar | "+notes.length+" notes";
+
+            const explanations={
+              strum:"Strumming dasar: downstroke dan upstroke bergantian pada subdivisi 1/8. Not senar digeser sedikit agar serangan tidak benar-benar bersamaan.",
+              variation:"Strumming variasi: beberapa subdivisi sengaja kosong agar ritme terasa lebih berayun. Ini pola awal yang bisa kamu edit lagi.",
+              arp:"Fingerpicking: nada chord dipetik satu per satu dengan jarak teratur.",
+              power:"Power chord: pola root, fifth, dan octave dengan serangan ritmis yang cocok sebagai dasar rock."
+            };
+
             document.getElementById("explain").textContent=
-              "Chord: "+chords.join(" → ")+" | "+bpm+" BPM. "+label+" Periksa voicing dan geser oktaf bila perlu.";
+              explanations[technique]+"\n\nVoicing dipilih dari nada terbuka dan fret awal gitar standar. Ini perkiraan otomatis, jadi cek kembali nada dan inversinya sebelum dipakai.";
           }
 
           function draw(){
             const canvas=document.getElementById("canvas");
             const ctx=canvas.getContext("2d");
-            const beats=Number(document.getElementById("bars").value)*4;
-            const w=Math.max(600,beats*100);
-            const h=560;
-            canvas.width=w;canvas.height=h;
-            const row= h/49;
-            ctx.fillStyle="#111722";ctx.fillRect(0,0,w,h);
-            for(let p=36;p<=84;p++){
-              const y=h-(p-36)*row;
-              ctx.fillStyle=noteNames[p%12]==="C"?"#30394a":"#1b2330";
-              ctx.fillRect(0,y,w,row-1);
-              ctx.fillStyle="#aab7d5";ctx.font="10px Arial";
-              if(noteNames[p%12]==="C")ctx.fillText("C"+(Math.floor(p/12)-1),2,y+10);
+            const w=Math.max(420,Math.ceil(totalBeats*BEAT+45));
+            const h=(HIGH-LOW+1)*ROW;
+            canvas.width=w;
+            canvas.height=h;
+
+            ctx.fillStyle="#101722";
+            ctx.fillRect(0,0,w,h);
+
+            for(let p=LOW;p<=HIGH;p++){
+              const y=(HIGH-p)*ROW;
+              const isC=p%12===0;
+              ctx.fillStyle=isC?"#303d51":(p%12===1||p%12===3||p%12===6||p%12===8||p%12===10)?"#151d2a":"#202a39";
+              ctx.fillRect(0,y,w,ROW-1);
+
+              if(isC){
+                ctx.fillStyle="#c5d5ee";
+                ctx.font="10px Arial";
+                ctx.fillText("C"+(p/12-1),3,y+9);
+              }
             }
+
+            for(let b=0;b<=totalBeats;b++){
+              const x=40+b*BEAT;
+              ctx.strokeStyle=b%4===0?"#697995":"#344156";
+              ctx.beginPath();
+              ctx.moveTo(x,0);
+              ctx.lineTo(x,h);
+              ctx.stroke();
+
+              if(b%4===0&&b<totalBeats){
+                ctx.fillStyle="#b9c7df";
+                ctx.font="10px Arial";
+                ctx.fillText("Bar "+(b/4+1),x+3,11);
+              }
+            }
+
             notes.forEach(n=>{
-              const x=40+n.start*100;
-              const y=h-(n.pitch-36)*row;
-              ctx.fillStyle="#70d8ff";
-              ctx.fillRect(x,y,Math.max(5,n.duration*100),row-2);
+              const x=40+n.start*BEAT;
+              const y=(HIGH-n.pitch)*ROW;
+              const width=Math.max(4,n.duration*BEAT);
+              ctx.fillStyle="#70d9ff";
+              ctx.fillRect(x,y,width,ROW-2);
+              ctx.fillStyle="#102232";
+              ctx.fillRect(x,y,Math.min(3,width),ROW-2);
             });
           }
 
           function vlq(value){
             let buffer=value&127;
+            const out=[];
             while((value>>=7)){
               buffer<<=8;
               buffer|=((value&127)|128);
             }
-            const out=[];
             while(true){
               out.push(buffer&255);
               if(buffer&128)buffer>>=8;
@@ -344,41 +493,70 @@ jobs:
           }
 
           function exportMidi(){
-            if(!notes.length){alert("Buat piano roll dulu.");return;}
-            const bpm=Number(document.getElementById("bpm").value)||88;
+            if(!notes.length){
+              alert("Buat piano roll dulu.");
+              return;
+            }
+
+            const bpm=Number(document.getElementById("bpm").value);
             const events=[];
+
             notes.forEach(n=>{
               const start=Math.round(n.start*480);
-              const end=Math.round((n.start+n.duration)*480);
-              events.push({t:start,b:[0x90,n.pitch,90]});
-              events.push({t:end,b:[0x80,n.pitch,0]});
+              const end=Math.max(start+1,Math.round((n.start+n.duration)*480));
+              events.push({t:start,kind:1,p:n.pitch,v:n.velocity});
+              events.push({t:end,kind:0,p:n.pitch,v:0});
             });
-            events.sort((a,b)=>a.t-b.t);
-            const track=[0,0xFF,0x51,3,
-              (60000000/bpm>>16)&255,(60000000/bpm>>8)&255,(60000000/bpm)&255];
+
+            events.sort((a,b)=>a.t-b.t||a.kind-b.kind);
+
+            const micros=Math.round(60000000/bpm);
+            const track=[
+              0,0xFF,0x51,3,
+              (micros>>16)&255,(micros>>8)&255,micros&255
+            ];
+
             let last=0;
             events.forEach(e=>{
-              track.push(...vlq(Math.max(0,e.t-last)),...e.b);
+              track.push(...vlq(e.t-last));
+              track.push(e.kind?0x90:0x80,e.p,e.v);
               last=e.t;
             });
+
             track.push(0,0xFF,0x2F,0);
-            const header=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,1,0xE0];
+
             const len=track.length;
-            const data=[...header,0x4D,0x54,0x72,0x6B,
-              (len>>>24)&255,(len>>>16)&255,(len>>>8)&255,len&255,...track];
-            const bytes=new Uint8Array(data);
-            let binary="";
-            bytes.forEach(b=>binary+=String.fromCharCode(b));
-            const base64=btoa(binary);
-            const filename="neion-guitar.mid";
+            const header=[
+              0x4D,0x54,0x68,0x64,0,0,0,6,
+              0,0,0,1,1,0xE0,
+              0x4D,0x54,0x72,0x6B,
+              (len>>>24)&255,(len>>>16)&255,
+              (len>>>8)&255,len&255,
+              ...track
+            ];
+
+            const bytes=new Uint8Array(header);
+
             if(window.NeiOnAndroid){
-              NeiOnAndroid.saveMidi(base64,filename);
+              let binary="";
+              for(let i=0;i<bytes.length;i++){
+                binary+=String.fromCharCode(bytes[i]);
+              }
+              NeiOnAndroid.saveMidi(
+                btoa(binary),"neion-v020.mid"
+              );
             }else{
+              const blob=new Blob([bytes],{type:"audio/midi"});
+              const url=URL.createObjectURL(blob);
               const a=document.createElement("a");
-              a.href=URL.createObjectURL(new Blob([bytes],{type:"audio/midi"}));
-              a.download=filename;a.click();
+              a.href=url;
+              a.download="neion-v020.mid";
+              a.click();
+              setTimeout(()=>URL.revokeObjectURL(url),1000);
             }
           }
+
+          generate();
           </script>
           </body>
           </html>
@@ -390,6 +568,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NeiOn-debug-APK
+          name: NeiOn-v0.2.0-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
